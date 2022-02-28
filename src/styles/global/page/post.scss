@@ -1,0 +1,37 @@
+@use '../../utility' as util;
+
+.postpage {
+  @include util.mq(md) {
+    margin: 6rem;
+  }
+}
+
+.toc {
+  display: none;
+}
+
+@include util.mq(md) {
+  .toc {
+    // padding-top: 2rem;
+    display: block;
+    overflow: hidden;
+    border: none;
+    border: 1px solid var(--color-black);
+
+    // &::before {
+    //   position: absolute;
+    //   top: 0;
+    //   left: 0;
+    //   content: 'TOC';
+    // }
+
+    &__list {
+      padding: 0.2rem 2rem;
+      list-style: none;
+    }
+
+    &__item {
+      padding: 0;
+    }
+  }
+}

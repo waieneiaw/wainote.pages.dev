@@ -1,0 +1,127 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the README at:
+// https://github.com/microsoft/vscode-dev-containers/tree/v0.217.4/containers/javascript-node
+{
+	"name": "Node.js",
+	"build": {
+		"dockerfile": "Dockerfile",
+		// Update 'VARIANT' to pick a Node version: 16, 14, 12.
+		// Append -bullseye or -buster to pin to an OS version.
+		// Use -bullseye variants on local arm64/Apple Silicon.
+		"args": {
+			"VARIANT": "16-bullseye"
+		}
+	},
+	"mounts": [
+		"source=node_modules,target=/workspaces/blog/node_modules,type=volume",
+	],
+	// Set *default* container specific settings.json values on container create.
+	"settings": {
+		"editor.codeActionsOnSave": {
+			"source.fixAll.eslint": true,
+			"source.fixAll.stylelint": true
+		},
+		"[markdown]": {
+			"editor.unicodeHighlight.ambiguousCharacters": false,
+			"editor.unicodeHighlight.invisibleCharacters": false,
+			"editor.wordWrap": "bounded",
+			"editor.wordWrapColumn": 80,
+			"editor.quickSuggestions": false
+		},
+		"[json]": {
+			"editor.tabSize": 2,
+			"editor.insertSpaces": true,
+			"editor.quickSuggestions": {
+				"strings": true
+			},
+			"editor.suggest.insertMode": "replace"
+		},
+		"[javascript]": {
+			"editor.tabSize": 2,
+			"editor.insertSpaces": true,
+			"editor.defaultFormatter": "esbenp.prettier-vscode",
+		},
+		"[typescript]": {
+			"editor.tabSize": 2,
+			"editor.insertSpaces": true,
+			"editor.defaultFormatter": "esbenp.prettier-vscode",
+		},
+		"[typescriptreact]": {
+			"editor.tabSize": 2,
+			"editor.insertSpaces": true,
+			"editor.defaultFormatter": "esbenp.prettier-vscode",
+		},
+		"[scss]": {
+			"editor.tabSize": 2,
+			"editor.insertSpaces": true,
+			"editor.defaultFormatter": "esbenp.prettier-vscode",
+			"editor.suggest.insertMode": "replace",
+			"editor.codeActionsOnSave": {
+				"source.fixAll": true
+			},
+			"editor.formatOnSave": true
+		},
+		"[svg]": {
+			"editor.codeActionsOnSave": {
+				"source.fixAll": false
+			},
+			"editor.formatOnSave": false
+		},
+		"eslint.workingDirectories": [
+			"./src"
+		],
+		"stylelint.configBasedir": ".",
+		"stylelint.enable": true,
+		"stylelint.validate": [
+			"css",
+			"scss",
+			".module.scss"
+		],
+		"stylelint.packageManager": "npm",
+		"stylelint.config": null,
+		"css.validate": false,
+		"less.validate": false,
+		"scss.validate": false,
+		"files.exclude": {
+			"**/node_modules": true,
+		},
+		"search.exclude": {
+			"**/node_modules": true,
+			"**/dist": true,
+			"**/*.js": true
+		}
+	},
+	// Add the IDs of extensions you want installed when the container is created.
+	"extensions": [
+		// UTILITIES
+		"oderwat.indent-rainbow",
+		"alefragnani.bookmarks",
+		"coenraads.bracket-pair-colorizer",
+		"aaron-bond.better-comments",
+		"mutantdino.resourcemonitor",
+		"ionutvmi.path-autocomplete",
+		"chrmarti.regex",
+		"gruntfuggly.todo-tree",
+		// .env
+		"mikestead.dotenv",
+		// YAML
+		"redhat.vscode-yaml",
+		// Git
+		"mhutchie.git-graph",
+		"donjayamanne.githistory",
+		"eamodio.gitlens",
+		// Node.js
+		"dbaeumer.vscode-eslint",
+		"esbenp.prettier-vscode",
+		"stylelint.vscode-stylelint",
+		// HTML and React
+		"vincaslt.highlight-matching-tag",
+		// MDX
+		"silvenon.mdx",
+	],
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// "forwardPorts": [],
+	// Use 'postCreateCommand' to run commands after the container is created.
+	"postCreateCommand": "sudo chown node ./node_modules; npm i",
+	// Comment out to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
+	"remoteUser": "node"
+}

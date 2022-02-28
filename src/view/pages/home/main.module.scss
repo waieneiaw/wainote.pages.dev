@@ -1,0 +1,31 @@
+@use 'utility' as util;
+
+.root {
+  padding: 3rem 0;
+
+  @include util.mq(md) {
+    padding: 3rem 6rem;
+  }
+}
+
+.card {
+  margin-bottom: 2rem;
+
+  @include util.mq(md) {
+    margin-bottom: 0;
+  }
+
+  &:nth-last-of-type(1) {
+    margin-bottom: 0;
+  }
+}
+
+.articlesContainer {
+  @include util.mq(md) {
+    $one: minmax(1.2rem, 1fr);
+
+    display: grid;
+    grid-template-columns: $one $one $one;
+    gap: 2rem;
+  }
+}

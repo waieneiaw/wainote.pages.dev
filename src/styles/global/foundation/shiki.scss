@@ -1,0 +1,50 @@
+/* shiki */
+
+$radius: 8px;
+
+.shiki {
+  overflow-x: auto;
+  border-radius: $radius;
+
+  code {
+    font-family: var(--font-mono);
+    white-space: pre-wrap;
+    counter-reset: step;
+    counter-increment: step calc(var(--start, 1) - 1);
+  }
+
+  code .line::before {
+    display: inline-block;
+    width: 1rem;
+    margin: 0 1.5rem;
+    color: rgb(115 138 148 / 40%);
+    text-align: right;
+    content: counter(step);
+    counter-increment: step;
+  }
+
+  code .line {
+    $padding: 0.2rem;
+
+    display: inline-block;
+    width: 100%;
+    white-space: nowrap;
+
+    &:nth-child(odd) {
+      background-color: #000;
+
+      &:nth-of-type(1) {
+        padding-top: $padding;
+        border-radius: $radius;
+      }
+    }
+
+    // stylelint-disable-next-line no-descending-specificity
+    &:nth-child(even) {
+      &:nth-last-of-type(1) {
+        padding-bottom: $padding;
+        border-radius: $radius;
+      }
+    }
+  }
+}

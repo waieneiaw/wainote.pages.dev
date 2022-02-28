@@ -1,0 +1,44 @@
+@use 'utility' as util;
+
+.root {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 1rem 2rem;
+  overflow: hidden;
+  background-color: #fff;
+
+  @include util.mq(md) {
+    border: 1px solid var(--color-black);
+  }
+}
+
+.summary {
+  margin: 0.8rem 0;
+}
+
+.info {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+
+  .separator {
+    margin: 0 0.8rem;
+
+    &::before {
+      content: '|';
+    }
+  }
+
+  .tag {
+    padding: 0 0.4rem;
+    margin-right: 0.8rem;
+    color: var(--color-white);
+    background-color: var(--color-black);
+    border-radius: 0.2rem;
+
+    &:nth-last-of-type(1) {
+      margin-right: 0;
+    }
+  }
+}

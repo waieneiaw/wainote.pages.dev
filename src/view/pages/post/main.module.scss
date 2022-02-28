@@ -1,0 +1,79 @@
+@use 'utility' as util;
+
+.root {
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
+  @include util.mq(lg) {
+    padding: 2rem 6rem;
+  }
+}
+
+.body {
+  width: 100%;
+  @include util.mq(lg) {
+    max-width: util.$md;
+  }
+
+  > h1,
+  h2,
+  h3,
+  h4 {
+    > a {
+      text-decoration: none;
+
+      &:hover,
+      &:focus {
+        &::after {
+          margin-left: 0.4rem;
+          font-family: var(--icon-font-family);
+          content: var(--icon-link);
+        }
+      }
+    }
+
+    margin: 2rem 0;
+  }
+
+  > h1 {
+    // stylelint-disable-next-line no-descending-specificity
+    &::before {
+      content: '# ';
+    }
+  }
+
+  > h2 {
+    // stylelint-disable-next-line no-descending-specificity
+    > a {
+      &::before {
+        content: '## ';
+      }
+    }
+  }
+
+  > h3 {
+    // stylelint-disable-next-line no-descending-specificity
+    > a {
+      &::before {
+        content: '### ';
+      }
+    }
+  }
+
+  > h4 {
+    // stylelint-disable-next-line no-descending-specificity
+    > a {
+      &::before {
+        content: '#### ';
+      }
+    }
+  }
+
+  > p {
+    margin-bottom: 1rem;
+
+    &:nth-last-of-type(1) {
+      margin-bottom: 0;
+    }
+  }
+}
