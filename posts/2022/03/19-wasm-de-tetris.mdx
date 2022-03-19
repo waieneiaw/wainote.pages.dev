@@ -1,0 +1,207 @@
+---
+title: WASMがわからないのでNext.js + WASMでテトリス作ってみた
+date: '2022-03-19'
+thumbnailUrl: ''
+tags: ['Next.js', 'Rust', 'WASM']
+draft: false
+published: true
+updatedAt: '2022-03-19 18:59'
+---
+
+## WASM やってますか？
+
+みなさん、WASM 開発してますか？
+
+わたしは全然してません。WASM の使いどころがよくわからず、Webpack4 以外の環境構築も結構面倒で、興味を持ちつつもなかなか手を出せませんでした。
+
+そんな中、今年に入って Rust を触るようになり、しかも Next.js だと WASM の読み込みがかんたんということもあり、WASM をやってみようと奮起してみました。
+
+## 開発したもの
+
+[チュートリアルのライフゲーム](https://rustwasm.github.io/docs/book/game-of-life/introduction.html)では身につかないと感じ、せっかくなのでテトリスを自作してみることにしました。
+
+結局、ライフゲームのドキュメントをあまり読まずにやってしまったので（と言いつつ、ソースを全面的に参考にしています）、変なところが多々あると思いますが、参考にどうぞ。
+
+- DEMO： [https://waieneiaw.github.io/wasm-de-tetris/](https://waieneiaw.github.io/wasm-de-tetris/)
+- 成果物： [https://github.com/waieneiaw/wasm-de-tetris](https://github.com/waieneiaw/wasm-de-tetris)
+
+テトリスを題材にしたのは
+
+- 単純にいままで作ったことがなかった
+- なんとなくライフゲームの構造と似ているのでは？　と思った
+
+からです。
+
+ライフゲームのチュートリアルのソースを参考にすればそれほど苦労なくいけるだろうと甘い考えだったのですが、自分の実力ではテトリスの回転など WASM とは関係ないところにかなりハマってしまい、ここまでの状態で一週間程度の期間を費やすことになってしまいました。
+
+とはいえ自力でひとつ作ってみたことで多少、WASM の知見も得られたように思うので、自分用のメモとして文字に残そうと思いました。
+
+## WASM でハマったこと
+
+実は WASM 自体でハマった箇所はそこまでなく、これ自体は別モジュールの感覚で気軽に扱えるものでした。
+
+悩んだのはテトリミノの回転だったり、Next.js の対応がわからなかったりで戸惑ったのがほとんどです。
+
+### 多次元配列のデータを TS へ送る方法
+
+ライフゲームでは各セルの状態を一次元の配列にして JS へ渡していますが、テトリミノの表現に二次元配列を使いたかったため、フィールドの表現も二次元配列で表現することにしました。
+
+ライフゲームは一次元配列を
+
+```rs
+pub fn cells(&self) -> *const Cell {
+    self.cells.as_ptr()
+}
+```
+
+といったように JS へポインタを渡し、JS 側で
+
+```js
+// Import the WebAssembly memory at the top of the file.
+import { memory } from 'wasm-game-of-life/wasm_game_of_life_bg';
+
+// ...
+
+const drawCells = () => {
+  const cellsPtr = universe.cells();
+  const cells = new Uint8Array(memory.buffer, cellsPtr, width * height);
+
+  //...
+};
+```
+
+と`Uint8Array`型に変換して取り扱うのですが、これをそのまま二次元配列でやり取りする方法がわかりませんでした。
+
+もちろんポインタではなく値を送ればそのまま利用できますが、それはさすがに。。。ということで苦肉の策として、
+
+```rs
+struct Game {
+    // ..
+    /// TSへ渡すためのデータ
+    cells: Vec<Cell>,
+    /// 実際にRustで操作するためのデータ
+    playfield: Vec<Vec<Cell>>,
+    // ..
+}
+```
+
+と二つのデータを持ち、TS へは`cells`をライフゲームと同様の方法で渡し、更新処理で`playfield`を一次元配列に展開し、`cells`へ詰め直す作業を毎回行う形にしました。
+
+都度配列を生成せず、構造体に値（`cells`）を持たせたのは、都度の生成の場合だと値が存在し続けるかどうか不安だったためです。
+
+これが良い方法かどうかは少し不安ですが、いまのところ問題なく処理できていそうです。
+
+### `wasm-bindgen`で実行する関数やメソッドでは所有権絡みのエラーが出ない
+
+通常、Rust では所有権に厳しく、値がムーブするなどした場合、ボローチェッカーが厳しく判定してくれるのですが、
+Rust で使用せず、TS から実行させる関数・メソッドについてはチェックできません（Rust 側でその関数・メソッドを呼び出していないため仕方ないのですが）。
+
+値が消失してしまうような処理を書いてしまったりすると、コンパイルは通るのに実行時にメモリ絡みのエラーが発生することになります。
+
+Rust で実行時エラーはなかなか起きないためにどこで問題が起きているのかわかりづらく、原因を特定するのがなかなか難しかったです。
+
+## WASM の呼び出しでハマったこと
+
+どちらかと言えば WASM 自体でどうこうと言うより、TS 側での取り扱いで引っかかることが多く、Next.js が SSR ビルドすることも相まって余計にややこしかったです。
+
+### Next.js では、WASM は`useEffect`で読み込まなければならない
+
+SSR ビルドで実行できないクレートがいくつか存在します。
+
+今回の場合は`rand`クレートや`js-sys`クレートがそれでした。
+
+Next.js から WASM をあまりにもかんたんに呼び出せて、しかもコンパイルが通るせいで何も気にしなくて良いと思っていましたが、CSR でないとエラーになることがあります（ブラウザで動く前提なのだから、よく考えたら当たり前ですね……）。
+上記クレートを利用している場合、SSR ビルド時に謎のエラーが発生します。
+
+これを回避し、確実に WASM を読み込むためには`useEffect`内部で WASM を呼び出す必要があります。
+
+```ts
+import * as React from 'react';
+import * as WASM from 'wasm/wasm';
+import { GameIO } from 'wasm/wasm';
+
+type WASM = typeof WASM;
+
+let wasm: WASM;
+let gameIO: GameIO;
+
+export const useWASMLoader = () => {
+  React.useEffect(() => {
+    const load = async () => {
+      const _wasm = await import('wasm/wasm');
+      wasm = _wasm;
+
+      const { GameIO } = _wasm;
+      const game = GameIO.new();
+      gameIO = game;
+    };
+
+    void load();
+  }, []);
+};
+```
+
+上記の方法では`useEffect`で動的インポートを行い、変数にモジュールを代入しています。
+
+なお、React コンポーネントで変更を検知させる場合には`useState`で WASM モジュールを保持すべきですが、
+今回はテトリス側の処理を React コンポーネントに検知させる必要がなかったため、この方法を取りました。
+
+画面描画や WASM の取り扱いを React に依存させず、素の TS ファイルで書きたかった、というのも理由のひとつです。
+
+ただ、そのまま変数を`export`して取り回すのは少々不安だったので、
+
+```ts
+import * as WASM from 'wasm/wasm';
+import { GameIO } from 'wasm/wasm';
+
+type WASM = typeof WASM;
+
+let wasm: WASM;
+let gameIO: GameIO;
+
+export const withWASM = <T>(callback: (wasm: WASM) => T) => {
+  if (!wasm) {
+    return;
+  }
+
+  const result = callback(wasm);
+
+  return result;
+};
+
+export const withGameIO = <T>(callback: (game: GameIO) => T) => {
+  if (!gameIO) {
+    return;
+  }
+
+  const result = callback(gameIO);
+
+  return result;
+};
+```
+
+と、こんな感じで WASM モジュールにアクセスできる高階関数を用意しておくことで対処しました。
+
+## 面倒だと思ったこと
+
+Next.js の仕様だと思うのですが、どうしてもホットリロードを実現できず、修正のたびに再起動して確認していました。
+
+今回は小規模なゲームでクオリティも求めていなかったので苦労しませんでしたが、ホットリロードが効かないこの構成は少しつらかったです（と同時に普段の環境で当たり前のようにホットリロードがあることがすごいと改めて感じます）。
+
+とはいえ Next.js を使って WASM がメイン処理を担う場面は多くないと思いますので、実務で取り扱うような場合にはそこまで問題ないのかもしれません。
+
+## 今後
+
+いろいろ見てみると[web-sys](https://crates.io/crates/web-sys)クレートを使えば Rust 側でブラウザの機能も利用できるみたいなので、次になにか作るときはこっちで全面的に WASM へ寄せてみたいと思いました。
+
+## 参考文献
+
+以下の資料のおかげでここまで実現できました。ありがとうございました。
+
+- [Implementing Conway's Game of Life](https://rustwasm.github.io/docs/book/game-of-life/implementing.html)
+- [テトリスを作ろう!](http://www3.nit.ac.jp/~tamura/pdf/tetris.pdf)
+- [Next.js で作ったブログを GitHub Pages にデプロイする](https://jamband.github.io/blog/2021/08/deploy-nextjs-app-to-github-pages/)
+
+## 最後に
+
+ゲームオーバー後にリスタートでブロックが切り替わってしまう不具合が直せません。。。
