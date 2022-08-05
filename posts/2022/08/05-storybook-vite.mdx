@@ -1,0 +1,68 @@
+---
+title: Vite+Storybookで`vite.config.ts`を読み込みたかった
+date: '2022-08-05'
+thumbnailUrl: ''
+tags: ['Vite', 'Storybook']
+draft: false
+published: true
+updatedAt: '2022-08-05 19:19'
+---
+
+## 対象のバージョンなど
+
+- @storybook/addon-actions : 6.5.10
+- @storybook/addon-essentials : 6.5.10
+- @storybook/addon-interactions : 6.5.10
+- @storybook/addon-links : 6.5.10
+- @storybook/builder-vite : 6.5.10
+- @storybook/react : 6.5.10
+- @storybook/testing-library : 6.5.10
+- @vitejs/plugin-react : 2.0.0
+- vite : 3.0.4
+
+## Storybook と Vite の設定をあまり変えたくない
+
+Vite と Storybook を一緒に使ったことがなく、初めて使ってみたのですがちょっとハマってしまいました。
+
+Storybook は便利なのですが設定周りが非常に面倒ですね。。。
+
+だいたいいつも何かにひっかかっている気がします。
+
+## 起きた問題と Vite の設定
+
+プロジェクト自体は以下のような設定にしていました。
+
+```ts
+export default defineConfig({
+  base: './',
+  root: './src',
+  publicDir: '../public',
+  resolve: {
+    alias: {
+      '~': path.resolve(__dirname, 'src'),
+    },
+  },
+});
+```
+
+`index.html`をプロジェクトルートに置くのが気持ち悪かったので、`src`ディレクトリに移動させています。
+
+このせいか、このせいか、Storybook でコンポーネントを開くと
+
+```
+Failed to fetch dynamically imported module: http://localhost:6006/src/~~~.stories.tsx
+```
+
+とエラーが表示されてしまい、非常に困っていました。
+
+また、併せて絶対パス参照も機能しておらず、どうも`vite.config.ts`がうまく読み込めていないであろうことは推測できる状態ではありました。
+
+## 解決策
+
+[こちらの issue のコメント](https://github.com/storybookjs/builder-vite/issues/85#issuecomment-900831050)がそのものズバリの解決策でした。
+
+ここに書かれているコードを追記することで問題なく表示できる状態になりました。
+
+以降にもいろいろ別の解決策が提示されていますが他のライブラリを追加でインストールが必要ですし、今回わたしが使用したバージョンはこの内容のままで問題なく動作しているのでこちらを採用しています。
+
+割と時間を溶かしてしまったので、もし同じ問題にハマった方の助力になれれば嬉しいです。
