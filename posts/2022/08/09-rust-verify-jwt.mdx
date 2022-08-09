@@ -1,0 +1,72 @@
+---
+title: RustでAuth0のJWKSを介さずJWTを検証する
+date: '2022-08-09'
+thumbnailUrl: ''
+tags: ['Rust', 'JWT', 'Auth0']
+draft: false
+published: true
+updatedAt: '2022-08-09 21:06'
+---
+
+## はじめに
+
+セキュリティ的に検証できているわけではないので鵜呑みにはしないでください。
+
+## インターネットに繋げない
+
+いま開発中のアプリケーションでは IDaaS に Auth0 を利用しているのですが、
+バックエンドサーバーがインターネットに接続できないので JWKS にアクセスができません。
+
+そのため代替案として各 Applications から取得できる公開鍵を使って`jwks.json`にアクセスせずに JWT をデコードしてみました。
+
+## 公開鍵の取得
+
+JWT の公開鍵を取得する必要があります。
+
+[https://auth0.com/docs/secure/tokens/json-web-tokens/validate-json-web-tokens#verify-rs256-signed-tokens](https://auth0.com/docs/secure/tokens/json-web-tokens/validate-json-web-tokens#verify-rs256-signed-tokens)
+
+取得方法は ↑ の「3.」までの通りです。
+
+## 具体的な実装
+
+以上を踏まえて実装はこんな感じです。
+
+```rust
+pub struct Claim {
+    pub sub: String,
+    pub exp: usize,
+}
+
+pub fn decode_token(token: &str) -> Result<Claim, std::error::Error> {
+    let public_key = std::env::var("PUBLIC_KEY")
+        .replace("CERTIFICATE", "PUBLIC KEY")
+        .as_bytes();
+
+    let key = &jsonwebtoken::DecodingKey::from_rsa_pem(public_key).unwrap();
+    let header = jsonwebtoken::decode_header(token)?;
+    let validation = &jsonwebtoken::Validation::new(header.alg);
+
+    let result = jsonwebtoken::decode::<Claim>(token, key, validation)?;
+
+    Ok(result.claim)
+}
+```
+
+JWT のデコードについては[GitHub - Keats/jsonwebtoken: JWT lib in rust](https://github.com/Keats/jsonwebtoken)を利用しました。
+
+Rust の JWT 関係のライブラリはいくつかありますが、今回は[こちらのサンプル](https://github.com/auth0-developer-hub/api_actix-web_rust_hello-world/tree/basic-authorization)から拝借しました。
+
+環境変数の`PUBLIC_KEY`には公開鍵を
+
+```bash
+AUTH0_PUBLIC_KEY=-----BEGIN CERTIFICATE-----\...\n...\...\n-----END CERTIFICATE-----
+```
+
+といったように一行で設定する必要があります。
+
+公開鍵の`replace`については[こちらの issue](https://github.com/Keats/jsonwebtoken/issues/259)のおかげで解決できました。
+というかこれは罠では……？
+
+……と、いろいろ紆余曲折ありながらなんとか実装はできました。
+
+しかし、キーのローテーションが実行されてしまうと公開鍵が使い物にならなくなってしまうので、特殊な事情がない限りは`jwks.json`を参照することをおすすめします。
